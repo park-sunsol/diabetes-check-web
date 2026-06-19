@@ -1674,7 +1674,25 @@
     // ── 선물 요청 (공유) ──
     let giftMonthLabel = '';
     function requestGift(){
-      shareText(`🎁 ${giftMonthLabel} 칭찬 포도를 모두 채웠어요!\n약속한 선물을 요청합니다 😊`);
+      var url = 'https://park-sunsol.github.io/diabetes-check-web/';
+      var text = '선물을 요청합니다!\n에헴!\n' + url;
+      if (window.Kakao && Kakao.isInitialized && Kakao.isInitialized()) {
+        try {
+          Kakao.Share.sendDefault({
+            objectType: 'feed',
+            content: {
+              title: '선물을 요청합니다!',
+              description: '에헴!',
+              imageUrl: 'https://park-sunsol.github.io/diabetes-check-web/gift-card.png',
+              imageWidth: 800,
+              imageHeight: 400,
+              link: { mobileWebUrl: url, webUrl: url }
+            }
+          });
+          return;
+        } catch(e){}
+      }
+      shareText(text);
     }
 
     // ── 길게 누를 때 줄어드는 press 피드백 (모바일 터치 + 마우스) ──

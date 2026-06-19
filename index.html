@@ -775,7 +775,7 @@
       font-weight: 700;
       cursor: pointer;
       transition: background var(--ease);
-      margin: 0 auto;
+      margin: 20px auto 0;
       display: block;
     }
     .praise-btn:hover { background: var(--blue-dark); }
@@ -1250,8 +1250,8 @@
     }
 
     function sharePraise(){
-      var text = lastPraiseMsg + '\n오늘의 체크리스트를 실천했어요!';
       var url = 'https://park-sunsol.github.io/diabetes-check-web/';
+      var text = lastPraiseMsg + '\n오늘의 체크리스트를 실천했어요!\n' + url;
       if (window.Kakao && Kakao.isInitialized && Kakao.isInitialized()) {
         try {
           Kakao.Share.sendDefault({

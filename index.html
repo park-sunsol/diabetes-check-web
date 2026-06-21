@@ -427,6 +427,62 @@
 
     .save-status { text-align: center; font-size: 12px; font-weight: 600; color: var(--text-2); margin-top: 10px; min-height: 18px; }
 
+    /* 몸무게 기록 */
+    .weight-field { padding: 0 4px; margin-top: 20px; }
+    .weight-field label { display: block; font-size: 14px; font-weight: 600; color: var(--text-2); margin-bottom: 8px; }
+
+    /* 음식 기록 */
+    .food-section { padding: 0 4px; margin-top: 24px; }
+    .food-section > label { display: block; font-size: 14px; font-weight: 600; color: var(--text-2); margin-bottom: 12px; }
+    .food-list { display: flex; flex-direction: column; gap: 10px; }
+    .food-row { display: flex; align-items: center; gap: 8px; }
+    .food-input {
+      flex: 1;
+      min-width: 0;
+      border: none;
+      border-bottom: 1.5px solid var(--border);
+      background: transparent;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      padding: 8px 2px;
+      outline: none;
+      transition: border-color var(--ease);
+    }
+    .food-input:focus { border-bottom-color: var(--text-2); }
+    .food-input::placeholder { color: var(--disabled); font-weight: 500; }
+    .food-del {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 50%;
+      background: var(--surface);
+      color: var(--text-2);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--ease), color var(--ease);
+    }
+    .food-del:active { background: var(--border); color: var(--text); }
+    .food-add {
+      margin-top: 14px;
+      width: 100%;
+      border: 1.5px dashed var(--border);
+      border-radius: var(--r-md);
+      background: transparent;
+      color: var(--text-2);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 12px;
+      cursor: pointer;
+      transition: background var(--ease), border-color var(--ease), color var(--ease);
+    }
+    .food-add:active { background: var(--surface); border-color: var(--text-2); color: var(--text); }
+
     /* ── 주간 ── */
     .week-nav { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 18px; }
     .week-label { font-size: 18px; font-weight: 700; letter-spacing: normal; color: var(--text); min-width: 130px; text-align: center; white-space: nowrap; }
@@ -913,7 +969,7 @@
       </div>
     </div>
 
-    <div class="section-title">혈당 기록</div>
+    <div class="section-title">오늘의 건강 기록</div>
     <div class="glucose-card">
       <div class="glucose-inputs">
         <div class="glucose-field">
@@ -930,6 +986,20 @@
             <span class="glucose-unit">mg/dL</span>
           </div>
         </div>
+      </div>
+
+      <div class="weight-field">
+        <label>몸무게</label>
+        <div class="glucose-input-wrap">
+          <input type="number" id="glucoseWeight" inputmode="decimal" step="0.1" size="1" placeholder="–" onchange="saveGlucose()" />
+          <span class="glucose-unit">kg</span>
+        </div>
+      </div>
+
+      <div class="food-section">
+        <label>오늘 먹은 음식</label>
+        <div class="food-list" id="foodList"></div>
+        <button type="button" class="food-add" onclick="addFoodRow()">＋ 음식 추가</button>
       </div>
     </div>
 
@@ -1175,12 +1245,48 @@
       const g=glucoseCache[d]||{};
       document.getElementById('glucoseFasting').value = g && g.fasting!=null ? g.fasting : '';
       document.getElementById('glucosePost').value = g && g.post!=null ? g.post : '';
+      document.getElementById('glucoseWeight').value = g && g.weight!=null ? g.weight : '';
+      // 음식 목록 렌더 (저장된 값이 있으면 그만큼, 없으면 빈 칸 하나)
+      const list=document.getElementById('foodList'); list.innerHTML='';
+      const meals=(g && Array.isArray(g.meals)) ? g.meals : [];
+      if(meals.length){ meals.forEach(m=>addFoodRow(m)); }
+      else { addFoodRow(); }
+    }
+    // 음식 입력 행 추가
+    function addFoodRow(value=''){
+      const list=document.getElementById('foodList');
+      const row=document.createElement('div'); row.className='food-row';
+      const input=document.createElement('input');
+      input.type='text'; input.className='food-input';
+      input.placeholder='예: 현미밥 한 공기';
+      input.value=value; input.onchange=saveGlucose;
+      const del=document.createElement('button');
+      del.type='button'; del.className='food-del';
+      del.setAttribute('aria-label','삭제'); del.textContent='×';
+      del.onclick=()=>removeFoodRow(del);
+      row.appendChild(input); row.appendChild(del);
+      list.appendChild(row);
+      return input;
+    }
+    function removeFoodRow(btn){
+      const row=btn.closest('.food-row'); if(!row) return;
+      const list=document.getElementById('foodList');
+      row.remove();
+      // 마지막 한 칸이 지워지면 빈 칸 하나는 유지
+      if(!list.querySelector('.food-row')) addFoodRow();
+      saveGlucose();
+    }
+    function getMeals(){
+      return [...document.querySelectorAll('#foodList .food-input')]
+        .map(i=>i.value.trim()).filter(Boolean);
     }
     function saveGlucose(){
       const f=document.getElementById('glucoseFasting').value;
       const p=document.getElementById('glucosePost').value;
-      const g={ fasting: f!==''?Number(f):null, post: p!==''?Number(p):null };
-      const hasVal = g.fasting!=null || g.post!=null;
+      const w=document.getElementById('glucoseWeight').value;
+      const meals=getMeals();
+      const g={ fasting: f!==''?Number(f):null, post: p!==''?Number(p):null, weight: w!==''?Number(w):null, meals: meals };
+      const hasVal = g.fasting!=null || g.post!=null || g.weight!=null || meals.length>0;
       glucoseCache[currentDate]= hasVal ? g : null;
       setLocalGlucose(currentDate, glucoseCache[currentDate]);
       // Supabase 동기화는 saveDay 통해 (checks와 함께)
